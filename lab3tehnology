@@ -1,0 +1,183 @@
+namespace lab3tehnology
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            // Singleton
+            Console.WriteLine("--- Singleton ---");
+            Config.Instance.LogLevel = "Debug";
+            Console.WriteLine(Config.Instance.LogLevel);
+
+            // Factory Method
+            Console.WriteLine("\n--- Factory Method ---");
+            new TruckFactory().DeliverCargo();
+            new ShipFactory().DeliverCargo();
+
+            // Abstract Factory
+            Console.WriteLine("\n--- Abstract Factory ---");
+            IGuiFactory f = new WinFactory();
+            f.CreateButton().Paint();
+            f.CreateCheckbox().Paint();
+
+            f = new MacFactory();
+            f.CreateButton().Paint();
+            f.CreateCheckbox().Paint();
+
+            // Builder
+            Console.WriteLine("\n--- Builder ---");
+            var builder = new HawaiianBuilder();
+            new Director(builder).Make();
+            Console.WriteLine(builder.GetResult());
+        }
+    }
+}
+// 1. SINGLETON 
+// Один экземпляр и глобальный доступ
+public class Config
+{
+    private static Config? _instance; // может лежать нулл 
+    
+
+    // если _instance не null то вернуть его как есть;
+    public static Config Instance()
+    {
+        if (_instance == null)
+        {
+            _instance = new Config();
+        }
+        return _instance;
+    }
+
+
+    public string LogLevel { get; set;} = "Info";
+    
+
+    private Config() { }   // снаружи new нельзя
+}
+
+
+// 2. FACTORY METHOD 
+// Абстрактный метод Create() — подклассы решают, ЧТО создавать
+interface ITransport
+{ 
+    void Deliver(); 
+}
+class Truck : ITransport 
+{
+    public void Deliver()
+    {
+        Console.WriteLine("Грузовик везёт");
+    }
+}
+class Ship : ITransport
+{
+    public void Deliver()
+    {
+        Console.WriteLine("Корабль плывёт");
+    }
+}
+abstract class TransportFactory
+{
+    public abstract ITransport Create();          // фабричный метод
+
+    public void DeliverCargo()                    // общая логика
+    {
+        Create().Deliver();
+    }
+}
+class TruckFactory : TransportFactory 
+{ 
+    public override ITransport Create() => new Truck(); 
+}
+class ShipFactory : TransportFactory
+{ 
+    public override ITransport Create() => new Ship(); 
+}
+
+
+//  3. ABSTRACT FACTORY 
+// Фабрика создаёт СЕМЕЙСТВО связанных объектов
+interface IButton 
+{ 
+    void Paint(); 
+}
+interface ICheckbox
+{
+    void Paint(); 
+}
+
+class WinButton : IButton 
+{
+    public void Paint() => Console.WriteLine("Windows кнопка");
+}
+class WinCheckbox : ICheckbox 
+{ 
+    public void Paint() => Console.WriteLine("Windows чекбокс"); 
+}
+class MacButton : IButton 
+{ 
+    public void Paint() => Console.WriteLine("Mac кнопка");
+}
+class MacCheckbox : ICheckbox 
+{
+    public void Paint() => Console.WriteLine("Mac чекбокс");
+}
+
+interface IGuiFactory
+{
+    IButton CreateButton();
+    ICheckbox CreateCheckbox();
+}
+class WinFactory : IGuiFactory
+{
+    public IButton CreateButton() => new WinButton();
+    public ICheckbox CreateCheckbox() => new WinCheckbox();
+}
+class MacFactory : IGuiFactory
+{
+    public IButton CreateButton() => new MacButton();
+    public ICheckbox CreateCheckbox() => new MacCheckbox();
+}
+
+
+// 4. BUILDER 
+// Сложный объект собирается по шагам
+class Pizza
+{
+    public string Dough { get; set; } = "";
+    public string Sauce { get; set; } = "";
+    public string Topping { get; set; } = "";
+    public override string ToString() => $"Пицца: {Dough}, {Sauce}, {Topping}";
+}
+
+interface IPizzaBuilder
+{
+    void BuildDough();
+    void BuildSauce();
+    void BuildTopping();
+    Pizza GetResult();
+}
+
+class HawaiianBuilder : IPizzaBuilder
+{
+    private readonly Pizza _pizza = new();
+    public void BuildDough() => _pizza.Dough = "тонкое тесто";
+    public void BuildSauce() => _pizza.Sauce = "мягкий соус";
+    public void BuildTopping() => _pizza.Topping = "ветчина+ананас";
+    public Pizza GetResult() => _pizza;
+}
+
+class Director
+{
+    private readonly IPizzaBuilder _b;
+    public Director(IPizzaBuilder b) => _b = b;
+    public void Make()
+    {
+        _b.BuildDough();
+        _b.BuildSauce();
+        _b.BuildTopping();
+    }
+}
+
+
