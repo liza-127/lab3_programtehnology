@@ -4,180 +4,168 @@ namespace lab3tehnology
     {
         static void Main(string[] args)
         {
-            // Singleton
             Console.WriteLine("--- Singleton ---");
-            Config.Instance.LogLevel = "Debug";
-            Console.WriteLine(Config.Instance.LogLevel);
+            AuditLog.GetInstance().Write("Пользователь вошёл");
+            AuditLog.GetInstance().Write("Файл открыт");
+            Console.WriteLine($"Один экземпляр: {ReferenceEquals(AuditLog.GetInstance(), AuditLog.GetInstance())}");
 
-            // Factory Method
             Console.WriteLine("\n--- Factory Method ---");
-            new TruckFactory().DeliverCargo();
-            new ShipFactory().DeliverCargo();
+            new CoffeeFactory().Serve();
+            new TeaFactory().Serve();
 
-            // Abstract Factory
             Console.WriteLine("\n--- Abstract Factory ---");
-            IGuiFactory f = new WinFactory();
-            f.CreateButton().Paint();
-            f.CreateCheckbox().Paint();
+            IFurnitureFactory f = new WoodFactory();
+            f.CreateChair().Sit();
+            f.CreateTable().Put();
 
-            f = new MacFactory();
-            f.CreateButton().Paint();
-            f.CreateCheckbox().Paint();
+            f = new MetalFactory();
+            f.CreateChair().Sit();
+            f.CreateTable().Put();
 
-            // Builder
             Console.WriteLine("\n--- Builder ---");
-            var builder = new HawaiianBuilder();
-            new Director(builder).Make();
+            var builder = new ChickenSandwichBuilder();
+            new SandwichDirector(builder).Make();
             Console.WriteLine(builder.GetResult());
         }
     }
 }
-// 1. SINGLETON 
-// Один экземпляр и глобальный доступ
-public class Config
-{
-    private static Config? _instance; // может лежать нулл 
-    
 
-    // если _instance не null то вернуть его как есть;
-    public static Config Instance()
+// SINGLETON 
+//  (приватное поле + приватный конструктор + getInstance),
+class AuditLog
+{
+    private static AuditLog? _instance;
+
+    private AuditLog() { }
+
+    public static AuditLog GetInstance()
     {
         if (_instance == null)
-        {
-            _instance = new Config();
-        }
+            _instance = new AuditLog();
         return _instance;
     }
 
-
-    public string LogLevel { get; set;} = "Info";
-    
-
-    private Config() { }   // снаружи new нельзя
+    public void Write(string msg) => Console.WriteLine($"[AUDIT] {msg}");
 }
 
 
-// 2. FACTORY METHOD 
-// Абстрактный метод Create() — подклассы решают, ЧТО создавать
-interface ITransport
-{ 
-    void Deliver(); 
-}
-class Truck : ITransport 
+// FACTORY METHOD
+//  (интерфейс и абстрактная фабрика и фабричный метод),
+
+interface IDrink { void Pour(); }
+
+class Coffee : IDrink 
 {
-    public void Deliver()
+    public void Pour() => Console.WriteLine("Наливаю кофе"); 
+}
+class Tea : IDrink
+{
+    public void Pour() => Console.WriteLine("Наливаю чай");
+}
+
+abstract class DrinkFactory
+{
+    public abstract IDrink CreateDrink();       // фабричный метод
+
+    public void Serve()                          // общая логика
     {
-        Console.WriteLine("Грузовик везёт");
+        IDrink drink = CreateDrink();
+        drink.Pour();
     }
 }
-class Ship : ITransport
-{
-    public void Deliver()
-    {
-        Console.WriteLine("Корабль плывёт");
-    }
-}
-abstract class TransportFactory
-{
-    public abstract ITransport Create();          // фабричный метод
 
-    public void DeliverCargo()                    // общая логика
-    {
-        Create().Deliver();
-    }
+class CoffeeFactory : DrinkFactory 
+{
+    public override IDrink CreateDrink() => new Coffee();
 }
-class TruckFactory : TransportFactory 
-{ 
-    public override ITransport Create() => new Truck(); 
-}
-class ShipFactory : TransportFactory
-{ 
-    public override ITransport Create() => new Ship(); 
+class TeaFactory : DrinkFactory
+{
+    public override IDrink CreateDrink() => new Tea();
 }
 
 
-//  3. ABSTRACT FACTORY 
-// Фабрика создаёт СЕМЕЙСТВО связанных объектов
-interface IButton 
-{ 
-    void Paint(); 
-}
-interface ICheckbox
+// ABSTRACT FACTORY 
+//интерфейсы продуктов и   интерфейс фабрики
+interface IChair { void Sit(); }
+interface ITable { void Put(); }
+
+class WoodChair : IChair 
 {
-    void Paint(); 
+    public void Sit() => Console.WriteLine("Деревянный стул"); 
+}
+class WoodTable : ITable
+{
+    public void Put() => Console.WriteLine("Деревянный стол"); 
+}
+class MetalChair : IChair 
+{
+    public void Sit() => Console.WriteLine("Металлический стул"); 
+}
+class MetalTable : ITable 
+{
+    public void Put() => Console.WriteLine("Металлический стол"); 
 }
 
-class WinButton : IButton 
+interface IFurnitureFactory
 {
-    public void Paint() => Console.WriteLine("Windows кнопка");
-}
-class WinCheckbox : ICheckbox 
-{ 
-    public void Paint() => Console.WriteLine("Windows чекбокс"); 
-}
-class MacButton : IButton 
-{ 
-    public void Paint() => Console.WriteLine("Mac кнопка");
-}
-class MacCheckbox : ICheckbox 
-{
-    public void Paint() => Console.WriteLine("Mac чекбокс");
+    IChair CreateChair();
+    ITable CreateTable();
 }
 
-interface IGuiFactory
+class WoodFactory : IFurnitureFactory
 {
-    IButton CreateButton();
-    ICheckbox CreateCheckbox();
+    public IChair CreateChair() => new WoodChair();
+    public ITable CreateTable() => new WoodTable();
 }
-class WinFactory : IGuiFactory
+
+class MetalFactory : IFurnitureFactory
 {
-    public IButton CreateButton() => new WinButton();
-    public ICheckbox CreateCheckbox() => new WinCheckbox();
-}
-class MacFactory : IGuiFactory
-{
-    public IButton CreateButton() => new MacButton();
-    public ICheckbox CreateCheckbox() => new MacCheckbox();
+    public IChair CreateChair() => new MetalChair();
+    public ITable CreateTable() => new MetalTable();
 }
 
 
-// 4. BUILDER 
-// Сложный объект собирается по шагам
-class Pizza
+// BUILDER 
+// интерфейс строителя и конкретный строитель и  директор
+class Sandwich
 {
-    public string Dough { get; set; } = "";
-    public string Sauce { get; set; } = "";
-    public string Topping { get; set; } = "";
-    public override string ToString() => $"Пицца: {Dough}, {Sauce}, {Topping}";
+    public string Bread { get; set; } = "";
+    public string Meat { get; set; } = "";
+    public string Salad { get; set; } = "";
+
+    public override string ToString() =>
+        $"Сэндвич: хлеб={Bread}, мясо={Meat}, салат={Salad}";
 }
 
-interface IPizzaBuilder
+interface ISandwichBuilder
 {
-    void BuildDough();
-    void BuildSauce();
-    void BuildTopping();
-    Pizza GetResult();
+    void BuildBread();
+    void BuildMeat();
+    void BuildSalad();
+    Sandwich GetResult();
 }
 
-class HawaiianBuilder : IPizzaBuilder
+class ChickenSandwichBuilder : ISandwichBuilder
 {
-    private readonly Pizza _pizza = new();
-    public void BuildDough() => _pizza.Dough = "тонкое тесто";
-    public void BuildSauce() => _pizza.Sauce = "мягкий соус";
-    public void BuildTopping() => _pizza.Topping = "ветчина+ананас";
-    public Pizza GetResult() => _pizza;
+    private readonly Sandwich _sandwich = new();
+    public void BuildBread() => _sandwich.Bread = "багет";
+    public void BuildMeat() => _sandwich.Meat = "курица";
+    public void BuildSalad() => _sandwich.Salad = "айсберг";
+    public Sandwich GetResult() => _sandwich;
 }
 
-class Director
+class SandwichDirector
 {
-    private readonly IPizzaBuilder _b;
-    public Director(IPizzaBuilder b) => _b = b;
+    private readonly ISandwichBuilder _builder;
+    public SandwichDirector(ISandwichBuilder b) => _builder = b;
+
     public void Make()
     {
-        _b.BuildDough();
-        _b.BuildSauce();
-        _b.BuildTopping();
+        _builder.BuildBread();
+        _builder.BuildMeat();
+        _builder.BuildSalad();
     }
 }
+
 
 
